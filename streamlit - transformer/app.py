@@ -3,6 +3,34 @@ import tensorflow as tf
 import numpy as np
 
 # Define the custom PositionalEncoding layer
+# class PositionalEncoding(tf.keras.layers.Layer):
+#     def __init__(self, maxlen=200, embed_dim=64, vocab_size=None, **kwargs):
+#         super(PositionalEncoding, self).__init__(**kwargs)
+#         self.maxlen = maxlen
+#         self.embed_dim = embed_dim
+#         self.vocab_size = vocab_size
+
+#     def call(self, inputs):
+#         positions = tf.range(start=0, limit=self.maxlen, delta=1)  # Shape: (maxlen,)
+#         positions = tf.expand_dims(positions, axis=1)  # Shape: (maxlen, 1)
+#         encoding = tf.cast(positions, dtype=tf.float32) / tf.cast(self.embed_dim, tf.float32)  # Shape: (maxlen, 1)
+#         encoding = tf.tile(encoding, [1, self.embed_dim])  # Shape: (maxlen, embed_dim)
+#         encoding = tf.expand_dims(encoding, axis=0)  # Shape: (1, maxlen, embed_dim)
+#         return inputs + encoding  # Broadcast addition to match input shape
+
+#     def get_config(self):
+#         config = super(PositionalEncoding, self).get_config()
+#         config.update({
+#             "maxlen": self.maxlen,
+#             "embed_dim": self.embed_dim,
+#             "vocab_size": self.vocab_size,
+#         })
+#         return config
+
+#     @classmethod
+#     def from_config(cls, config):
+#         return cls(**config)
+
 class PositionalEncoding(tf.keras.layers.Layer):
     def __init__(self, maxlen=200, embed_dim=64, vocab_size=None, **kwargs):
         super(PositionalEncoding, self).__init__(**kwargs)
@@ -11,11 +39,18 @@ class PositionalEncoding(tf.keras.layers.Layer):
         self.vocab_size = vocab_size
 
     def call(self, inputs):
+        # Reshape inputs if needed
+        input_shape = tf.shape(inputs)
+        if len(inputs.shape) > 3:  # Check for extra dimensions
+            inputs = tf.reshape(inputs, (input_shape[0], input_shape[1], input_shape[-1]))
+        
+        # Generate positional encodings
         positions = tf.range(start=0, limit=self.maxlen, delta=1)  # Shape: (maxlen,)
         positions = tf.expand_dims(positions, axis=1)  # Shape: (maxlen, 1)
         encoding = tf.cast(positions, dtype=tf.float32) / tf.cast(self.embed_dim, tf.float32)  # Shape: (maxlen, 1)
         encoding = tf.tile(encoding, [1, self.embed_dim])  # Shape: (maxlen, embed_dim)
         encoding = tf.expand_dims(encoding, axis=0)  # Shape: (1, maxlen, embed_dim)
+        
         return inputs + encoding  # Broadcast addition to match input shape
 
     def get_config(self):
@@ -30,6 +65,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
     @classmethod
     def from_config(cls, config):
         return cls(**config)
+
 
 
 # Define the custom TransformerBlock layer
@@ -84,10 +120,35 @@ def load_model():
 # Load the model
 model = load_model()
 
-# Define the prediction function
+# # Preprocessing function
+# def preprocess_input(input_data):
+#     """
+#     Preprocesses input data to match the model's expected format.
+#     Replace this with appropriate preprocessing (e.g., tokenization).
+#     """
+#     maxlen = 200  # Ensure this matches your model's input length
+#     embed_dim = 64  # Ensure this matches the model's embedding dimension
+
+#     if isinstance(input_data, str):
+#         # Example: Convert string into numeric input (dummy logic for demo)
+#         processed_data = np.zeros((1, maxlen, embed_dim), dtype=np.float32)
+#     else:
+#         # Ensure input is a float32-compatible NumPy array
+#         processed_data = np.array(input_data, dtype=np.float32)
+    
+#     return processed_data
+
+def preprocess_input(input_text):
+    maxlen, embed_dim = 200, 64  # Adjust based on model specs
+    
+    # Example placeholder for processed data (update with tokenizer logic as needed)
+    processed_data = np.zeros((1, maxlen, embed_dim), dtype=np.float32)
+    
+    return processed_data
+
+# Prediction function
 def make_prediction(input_data):
-    # Example preprocessing logic (adjust as necessary for your model)
-    processed_data = np.array([input_data])  # Replace with actual preprocessing steps
+    processed_data = preprocess_input(input_data)
     prediction = model.predict(processed_data)
     return prediction
 
@@ -99,10 +160,10 @@ input_text = st.text_area("Enter your input text:", "")
 
 if st.button("Predict"):
     if input_text:
-        # Example preprocessing: Replace with your preprocessing logic
-        input_data = [input_text]  # Adjust to match model input
         try:
-            prediction = make_prediction(input_data)
+            # Example preprocessing: Replace with your preprocessing logic
+            processed_input = preprocess_input(input_text)  # Adjust for actual input format
+            prediction = make_prediction(processed_input)
             st.write("Prediction:", prediction)
         except Exception as e:
             st.error(f"Error during prediction: {e}")
